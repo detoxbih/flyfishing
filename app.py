@@ -78,7 +78,6 @@ if st.sidebar.button("🔄 Resetuj / Obriši sve podatke"):
 if menu == "Unos takmičara":
   st.subheader("Registracija i upravljanje takmičarima")
 
-  # Forma za unos novog takmičara
   with st.form("form_takmicar"):
     st.write("### Dodaj novog takmičara")
     ime_prezime = st.text_input("Ime i prezime takmičara")
@@ -107,7 +106,6 @@ if menu == "Unos takmičara":
             f" {pocetni_sektor}"
         )
 
-  # Prikaz i opcija brisanja postojećih takmičara
   if st.session_state.takmicari:
     st.write("---")
     st.write("### Prijavljeni takmičari u bazi:")
@@ -130,11 +128,9 @@ if menu == "Unos takmičara":
 
       if submit_b:
         id_za_brisanje = opcije_za_brisanje[odabrani_za_bris]
-        # Ukloni takmičara
         st.session_state.takmicari = [
             t for t in st.session_state.takmicari if t["id"] != id_za_brisanje
         ]
-        # Ukloni i njegove ulove da ne ostanu siročići u bazi
         st.session_state.ulovi = [
             u for u in st.session_state.ulovi if u["takmicar_id"] != id_za_brisanje
         ]
@@ -144,7 +140,7 @@ if menu == "Unos takmičara":
         )
         st.rerun()
 
-# ----------------- 2. RUČNI UNOS ULOVA (PO KOLAMA, AUTOMATSKI SEKTORI) -----------------
+# ----------------- 2. RUČNI UNOS ULOVA -----------------
 elif menu == "Unos ulova ručno":
   st.subheader("Evidencija ulova po kolama (Sektori se automatski rotiraju)")
 
@@ -255,12 +251,12 @@ elif menu == "📸 Skeniraj listu kamerom":
 elif menu == "Službeni generalni plasman":
   st.markdown(
       """
-      <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
-          <h3 style="margin:0; font-family:serif;">NATIONAL PARK UNA OPEN</h3>
-          <h2 style="margin:5px 0; font-family:serif;">GENERALNI POJEDINAČNI PLASMAN U FLY FISHING-U : - SENIORI</h2>
-          <p style="margin:0; font-weight: bold;">Zakljucno sa : 3. Kolom</p>
-      </div>
-      """,
+        <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
+            <h3 style="margin:0; font-family:serif;">PRVENSTVO SRS F BIH U MUŠIČARENJU</h3>
+            <h2 style="margin:5px 0; font-family:serif;">GENERALNI POJEDINAČNI PLASMAN U FLY FISHING-U : - SENIORI</h2>
+            <p style="margin:0; font-weight: bold;">Zakljucno sa : 3. Kolom</p>
+        </div>
+        """,
       unsafe_allow_html=True,
   )
 
@@ -269,5 +265,25 @@ elif menu == "Službeni generalni plasman":
   else:
     st.markdown(
         """
-        <div style="text-align: right; margin-bottom: 15px;">
-            <button onclick="window.print()" style="background-color:#2c3e50; color:white; padding:8px 16px; border:none;
+          <div style="text-align: right; margin-bottom: 15px;">
+              <button onclick="window.print()" style="background-color:#2c3e50; color:white; padding:8px 16px; border:none; border-radius:4px; cursor:pointer; font-size:14px; font-weight:bold;">
+                  🖨️ Isprintaj / Sačuvaj kao PDF
+              </button>
+          </div>
+          """,
+        unsafe_allow_html=True,
+    )
+
+    rezultati_za_sort = []
+    for t in st.session_state.takmicari:
+      t_ulovi = [
+          u for u in st.session_state.ulovi if u["takmicar_id"] == t["id"]
+      ]
+      t_ulovi.sort(key=lambda x: x["kolo"])
+
+      uk_riba = sum(u["riba"] for u in t_ulovi)
+      uk_duzina = sum(u["duzina"] for u in t_ulovi)
+      uk_poeni = sum(u["poeni"] for u in t_ulovi)
+      zbir_plasmana = sum(u["plasman"] for u in t_ulovi)
+
+      rezultati_za_sort.
