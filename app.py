@@ -65,14 +65,18 @@ if st.sidebar.button("🔄 Resetuj / Obriši sve podatke"):
   st.sidebar.success("Baza je očišćena!")
   st.rerun()
 
-# ----------------- UNOS TAKMIČARA -----------------
+# ----------------- 1. UNOS TAKMIČARA (SAMO JEDNOM) -----------------
 if menu == "Unos takmičara":
-  st.subheader("Registracija takmičara, kluba/grada i početnog sektora")
+  st.subheader(
+      "Registracija takmičara (Unosi se jednom za cijelo takmičenje)"
+  )
 
   with st.form("form_takmicar"):
     ime_prezime = st.text_input("Ime i prezime takmičara")
     klub_grad = st.text_input("Klub / Država (npr. BOSANSKA KRUPA)")
-    pocetni_sektor = st.selectbox("Početni sektor (Kolo 1)", ["A", "B", "C"])
+    pocetni_sektor = st.selectbox(
+        "Početni sektor (Sektor u 1. kolu)", ["A", "B", "C"]
+    )
     submit_t = st.form_submit_button("Dodaj takmičara")
 
     if submit_t:
@@ -89,38 +93,43 @@ if menu == "Unos takmičara":
             "pocetni_sektor": pocetni_sektor,
         })
         snimi_podatke()
-        st.success(f"Uspješno dodan: {ime_prezime} ({klub_grad})")
+        st.success(
+            f"Uspješno dodan: {ime_prezime} ({klub_grad}) sa početnim sektorom"
+            f" {pocetni_sektor}"
+        )
 
   if st.session_state.takmicari:
     st.write("---")
-    st.write("### Prijavljeni takmičari:")
+    st.write("### Prijavljeni takmičari u bazi:")
     df_t = pd.DataFrame(st.session_state.takmicari)
     st.dataframe(df_t, use_container_width=True, hide_index=True)
 
-# ----------------- RUČNI UNOS ULOVA -----------------
+# ----------------- 2. RUČNI UNOS ULOVA (PO KOLAMA, AUTOMATSKI SEKTORI) -----------------
 elif menu == "Unos ulova ručno":
-  st.subheader("Evidencija ulova po kolama (Zvanični format)")
+  st.subheader("Evidencija ulova po kolama (Sektori se automatski rotiraju)")
 
   if not st.session_state.takmicari:
-    st.info("Prvo unesite takmičare.")
+    st.info("Prvo unesite takmičare u meniju 'Unos takmičara'.")
   else:
 
+    # Funkcija za automatsko izračunavanje sektora na osnovu početnog sektora i kola
     def izracunaj_sektor(pocetni, runda):
       sektori = ["A", "B", "C"]
       idx = sektori.index(pocetni)
       return sektori[(idx + runda - 1) % 3]
 
+    # Lista postojećih takmičara iz baze (bez ponovnog unosa imena!)
     opcije_takmicara = {
-        f"{t['ime']} ({t['klub']}) - Start: {t['pocetni_sektor']}": t["id"]
+        f"{t['ime']} ({t['klub']}) [Start: {t['pocetni_sektor']}]": t["id"]
         for t in st.session_state.takmicari
     }
 
     with st.form("form_ulov"):
       odabrani_str = st.selectbox(
-          "Izaberi takmičara", list(opcije_takmicara.keys())
+          "Izaberi takmičara iz baze", list(opcije_takmicara.keys())
       )
       kolo = st.selectbox("Izaberi kolo / rundu", [1, 2, 3])
-      
+
       col1, col2 = st.columns(2)
       with col1:
         naziv_staze = st.text_input("Mjesto / Staza", value="DRINA, GORAŽDE")
@@ -129,23 +138,32 @@ elif menu == "Unos ulova ručno":
 
       t_id = opcije_takmicara[odabrani_str]
       trenutni_t = next(t for t in st.session_state.takmicari if t["id"] == t_id)
+
+      # Automatski dodijeljen sektor na osnovu kola
       aktuelni_sektor = izracunaj_sektor(trenutni_t["pocetni_sektor"], kolo)
 
-      # Broj staze unutar sektora (npr. A 03)
-      broj_staze_int = st.number_input("Broj staze (npr. 3 za A 03)", min_value=1, max_value=30, value=1)
+      broj_staze_int = st.number_input(
+          "Broj staze (npr. 3 za A 03)", min_value=1, max_value=30, value=1
+      )
       oznaka_staze = f"{aktuelni_sektor} {broj_staze_int:02d}"
 
-      st.info(f"Automatski dodijeljen sektor i staza: **{oznaka_staze}** za {kolo}. kolo.")
+      st.info(
+          f"ℹ️ Za {kolo}. kolo takmičar **{trenutni_t['ime']}** automatski peca"
+          f" u sektoru: **{aktuelni_sektor}** (Staza: {oznaka_staze})"
+      )
 
       broj_riba = st.number_input("Broj riba", min_value=0, step=1, value=0)
-      duzina_mm = st.number_input("Ukupna dužina u mm", min_value=0.0, step=1.0, value=0.0)
-      plasman_sektor = st.number_input("Sektorski plasman (S.pl.)", min_value=1.0, step=1.0, value=1.0)
+      duzina_mm = st.number_input(
+          "Ukupna dužina u mm", min_value=0.0, step=1.0, value=0.0
+      )
+      plasman_sektor = st.number_input(
+          "Sektorski plasman (S.pl.)", min_value=1.0, step=1.0, value=1.0
+      )
 
       submit_u = st.form_submit_button("Snimi rezultate kola")
 
       if submit_u:
-        # Formula bodova po zvaničnom pravilniku (npr. 100 poena po ribi + dužina u mm)
-        poeni = (broj_riba * 100) + (duzina_mm)
+        poeni = (broj_riba * 100) + duzina_mm
 
         postojeci = next(
             (
@@ -174,9 +192,12 @@ elif menu == "Unos ulova ručno":
           st.session_state.ulovi.append(novi_podatak_kola)
 
         snimi_podatke()
-        st.success(f"Uspješno snimljeno za {trenutni_t['ime']} ({kolo}. kolo)!")
+        st.success(
+            f"Uspješno snimljeno za {trenutni_t['ime']} ({kolo}. kolo, Sektor"
+            f" {aktuelni_sektor})!"
+        )
 
-# ----------------- KAMERA -----------------
+# ----------------- 3. KAMERA -----------------
 elif menu == "📸 Skeniraj listu kamerom":
   st.subheader("📸 Skeniranje sudijske liste putem kamere")
   st.info("Uslikajte popunjenu sudijsku listu radi arhive i provjere.")
@@ -185,16 +206,16 @@ elif menu == "📸 Skeniraj listu kamerom":
 
   if slika_liste is not None:
     st.success("Slika je uspješno uslikana i sačuvana!")
-    st.image(slika_liste, caption="Uslikana sudijska lista", use_container_width=True)
+    st.image(
+        slika_liste, caption="Uslikana sudijska lista", use_container_width=True
+    )
 
     with open("poslednja_lista.jpg", "wb") as f:
       f.write(slika_liste.getbuffer())
     st.write("ℹ️ Slika je zabilježena u sistemu.")
 
-# ----------------- SLUŽBENI GENERALNI PLASMAN -----------------
+# ----------------- 4. SLUŽBENI GENERALNI PLASMAN -----------------
 elif menu == "Službeni generalni plasman":
-  
-  # Stilizovani vizuelni prikaz nalik zvaničnom dokumentu sa slike
   st.markdown(
       """
       <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
@@ -209,7 +230,6 @@ elif menu == "Službeni generalni plasman":
   if not st.session_state.takmicari:
     st.info("Nema unesenih podataka.")
   else:
-    # Dugme za štampanje / PDF izvoz
     st.markdown(
         """
         <div style="text-align: right; margin-bottom: 15px;">
@@ -226,7 +246,6 @@ elif menu == "Službeni generalni plasman":
       t_ulovi = [
           u for u in st.session_state.ulovi if u["takmicar_id"] == t["id"]
       ]
-      # Sortiramo ulove po kolima da idu redom (1, 2, 3)
       t_ulovi.sort(key=lambda x: x["kolo"])
 
       uk_riba = sum(u["riba"] for u in t_ulovi)
@@ -245,12 +264,10 @@ elif menu == "Službeni generalni plasman":
           "ulovi": t_ulovi,
       })
 
-    # Sortiranje takmičara po zbiru plasmana (manje je bolje), pa po broju riba, pa po poenima
     rezultati_za_sort.sort(
         key=lambda x: (x["zbir_plasmana"], -x["uk_riba"], -x["uk_poeni"])
     )
 
-    # Zaglavlje tabele nalik zvaničnom izgledu
     st.markdown(
         """
         <hr style="border: 1px solid black; margin: 5px 0;">
@@ -265,7 +282,6 @@ elif menu == "Službeni generalni plasman":
     )
 
     for poz, r in enumerate(rezultati_za_sort, 1):
-      # Prikaz takmičara (Red 1 sa slike)
       st.markdown(
           f"""
           <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 10px;">
@@ -277,7 +293,6 @@ elif menu == "Službeni generalni plasman":
           unsafe_allow_html=True,
       )
 
-      # Redovi za svako kolo pojedinačno (Staza, Datum, Sektor/St.br, Br.riba, Dužina, Poeni, S.pl.)
       if r["ulovi"]:
         for u in r["ulovi"]:
           st.markdown(
@@ -294,8 +309,7 @@ elif menu == "Službeni generalni plasman":
               """,
               unsafe_allow_html=True,
           )
-        
-        # UKUPNO red za takmičara
+
         st.markdown(
             f"""
             <div style="display: flex; justify-content: flex-end; font-size: 13px; font-weight: bold; background-color: #f9f9f9; padding: 3px 0; border-top: 1px solid black; border-bottom: 2px solid black;">
@@ -313,5 +327,5 @@ elif menu == "Službeni generalni plasman":
             """<p style="font-size: 12px; color: gray; margin-left: 40%;">Nema unesenih ulova za kola.</p>""",
             unsafe_allow_html=True,
         )
-      
+
       st.markdown("<br>", unsafe_allow_html=True)
