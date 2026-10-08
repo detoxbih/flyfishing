@@ -12,8 +12,11 @@ FAJL_BAZE = "baza_takmicenja.json"
 
 def ucitaj_podatke():
   if os.path.exists(FAJL_BAZE):
-    with open(FAJL_BAZE, "r", encoding="utf-8") as f:
-      return json.load(f)
+    try:
+      with open(FAJL_BAZE, "r", encoding="utf-8") as f:
+        return json.load(f)
+    except Exception:
+      pass
   return {"takmicari": [], "ulovi": []}
 
 
@@ -26,10 +29,11 @@ def snimi_podatke():
     json.dump(podaci, f, ensure_ascii=False, indent=4)
 
 
+# Inicijalizacija stanje i učitavanje iz fajla
 if "podaci_ucitani" not in st.session_state:
   saved = ucitaj_podatke()
-  st.session_state.takmicari = saved["takmicari"]
-  st.session_state.ulovi = saved["ulovi"]
+  st.session_state.takmicari = saved.get("takmicari", [])
+  st.session_state.ulovi = saved.get("ulovi", [])
   st.session_state.podaci_ucitani = True
 
 if "takmicari" not in st.session_state:
@@ -57,6 +61,11 @@ menu = st.sidebar.selectbox(
     ],
 )
 
+st.sidebar.markdown("---")
+if st.sidebar.button("💾 Sačuvaj sve podatke"):
+  snimi_podatke()
+  st.sidebar.success("Podaci su uspješno sačuvani u fajl!")
+
 if st.sidebar.button("🔄 Resetuj / Obriši sve podatke"):
   st.session_state.takmicari = []
   st.session_state.ulovi = []
@@ -65,13 +74,13 @@ if st.sidebar.button("🔄 Resetuj / Obriši sve podatke"):
   st.sidebar.success("Baza je očišćena!")
   st.rerun()
 
-# ----------------- 1. UNOS TAKMIČARA (SAMO JEDNOM) -----------------
+# ----------------- 1. UNOS I BRISANJE TAKMIČARA -----------------
 if menu == "Unos takmičara":
-  st.subheader(
-      "Registracija takmičara (Unosi se jednom za cijelo takmičenje)"
-  )
+  st.subheader("Registracija i upravljanje takmičarima")
 
+  # Forma za unos novog takmičara
   with st.form("form_takmicar"):
+    st.write("### Dodaj novog takmičara")
     ime_prezime = st.text_input("Ime i prezime takmičara")
     klub_grad = st.text_input("Klub / Država (npr. BOSANSKA KRUPA)")
     pocetni_sektor = st.selectbox(
@@ -98,11 +107,42 @@ if menu == "Unos takmičara":
             f" {pocetni_sektor}"
         )
 
+  # Prikaz i opcija brisanja postojećih takmičara
   if st.session_state.takmicari:
     st.write("---")
     st.write("### Prijavljeni takmičari u bazi:")
     df_t = pd.DataFrame(st.session_state.takmicari)
     st.dataframe(df_t, use_container_width=True, hide_index=True)
+
+    st.write("### ❌ Brisanje takmičara (u slučaju greške)")
+    opcije_za_brisanje = {
+        f"{t['ime']} ({t['klub']}) [ID: {t['id']}]": t["id"]
+        for t in st.session_state.takmicari
+    }
+
+    with st.form("form_brisanje"):
+      odabrani_za_bris = st.selectbox(
+          "Izaberi takmičara za brisanje", list(opcije_za_brisanje.keys())
+      )
+      submit_b = st.form_submit_button(
+          "🗑️ Obriši izabranog takmičara i njegove ulove"
+      )
+
+      if submit_b:
+        id_za_brisanje = opcije_za_brisanje[odabrani_za_bris]
+        # Ukloni takmičara
+        st.session_state.takmicari = [
+            t for t in st.session_state.takmicari if t["id"] != id_za_brisanje
+        ]
+        # Ukloni i njegove ulove da ne ostanu siročići u bazi
+        st.session_state.ulovi = [
+            u for u in st.session_state.ulovi if u["takmicar_id"] != id_za_brisanje
+        ]
+        snimi_podatke()
+        st.success(
+            f"Takmičar i njegovi rezultati su uspješno obrisani iz baze!"
+        )
+        st.rerun()
 
 # ----------------- 2. RUČNI UNOS ULOVA (PO KOLAMA, AUTOMATSKI SEKTORI) -----------------
 elif menu == "Unos ulova ručno":
@@ -112,13 +152,11 @@ elif menu == "Unos ulova ručno":
     st.info("Prvo unesite takmičare u meniju 'Unos takmičara'.")
   else:
 
-    # Funkcija za automatsko izračunavanje sektora na osnovu početnog sektora i kola
     def izracunaj_sektor(pocetni, runda):
       sektori = ["A", "B", "C"]
       idx = sektori.index(pocetni)
       return sektori[(idx + runda - 1) % 3]
 
-    # Lista postojećih takmičara iz baze (bez ponovnog unosa imena!)
     opcije_takmicara = {
         f"{t['ime']} ({t['klub']}) [Start: {t['pocetni_sektor']}]": t["id"]
         for t in st.session_state.takmicari
@@ -139,7 +177,6 @@ elif menu == "Unos ulova ručno":
       t_id = opcije_takmicara[odabrani_str]
       trenutni_t = next(t for t in st.session_state.takmicari if t["id"] == t_id)
 
-      # Automatski dodijeljen sektor na osnovu kola
       aktuelni_sektor = izracunaj_sektor(trenutni_t["pocetni_sektor"], kolo)
 
       broj_staze_int = st.number_input(
@@ -219,7 +256,7 @@ elif menu == "Službeni generalni plasman":
   st.markdown(
       """
       <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
-          <h3 style="margin:0; font-family:serif;">PRVENSTVO SRS F BIH U MUŠIČARENJU</h3>
+          <h3 style="margin:0; font-family:serif;">NATIONAL PARK UNA OPEN</h3>
           <h2 style="margin:5px 0; font-family:serif;">GENERALNI POJEDINAČNI PLASMAN U FLY FISHING-U : - SENIORI</h2>
           <p style="margin:0; font-weight: bold;">Zakljucno sa : 3. Kolom</p>
       </div>
@@ -233,99 +270,4 @@ elif menu == "Službeni generalni plasman":
     st.markdown(
         """
         <div style="text-align: right; margin-bottom: 15px;">
-            <button onclick="window.print()" style="background-color:#2c3e50; color:white; padding:8px 16px; border:none; border-radius:4px; cursor:pointer; font-size:14px; font-weight:bold;">
-                🖨️ Isprintaj / Sačuvaj kao PDF
-            </button>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    rezultati_za_sort = []
-    for t in st.session_state.takmicari:
-      t_ulovi = [
-          u for u in st.session_state.ulovi if u["takmicar_id"] == t["id"]
-      ]
-      t_ulovi.sort(key=lambda x: x["kolo"])
-
-      uk_riba = sum(u["riba"] for u in t_ulovi)
-      uk_duzina = sum(u["duzina"] for u in t_ulovi)
-      uk_poeni = sum(u["poeni"] for u in t_ulovi)
-      zbir_plasmana = sum(u["plasman"] for u in t_ulovi)
-
-      rezultati_za_sort.append({
-          "id": t["id"],
-          "ime": t["ime"],
-          "klub": t["klub"],
-          "uk_riba": uk_riba,
-          "uk_duzina": uk_duzina,
-          "uk_poeni": uk_poeni,
-          "zbir_plasmana": zbir_plasmana,
-          "ulovi": t_ulovi,
-      })
-
-    rezultati_za_sort.sort(
-        key=lambda x: (x["zbir_plasmana"], -x["uk_riba"], -x["uk_poeni"])
-    )
-
-    st.markdown(
-        """
-        <hr style="border: 1px solid black; margin: 5px 0;">
-        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; background-color: #f2f2f2; padding: 5px;">
-            <span style="width: 8%;">PLASM</span>
-            <span style="width: 32%;">IME TAKMIČARA</span>
-            <span style="width: 60%;">MESTO / DRŽAVA / DETALJI PO KOLIMA</span>
-        </div>
-        <hr style="border: 1px solid black; margin: 5px 0;">
-        """,
-        unsafe_allow_html=True,
-    )
-
-    for poz, r in enumerate(rezultati_za_sort, 1):
-      st.markdown(
-          f"""
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 10px;">
-              <span style="width: 8%; text-align: center;">{poz}</span>
-              <span style="width: 32%;">{r['ime'].upper()}</span>
-              <span style="width: 60%; color: #333;">{r['klub'].upper()}</span>
-          </div>
-          """,
-          unsafe_allow_html=True,
-      )
-
-      if r["ulovi"]:
-        for u in r["ulovi"]:
-          st.markdown(
-              f"""
-              <div style="display: flex; justify-content: space-between; font-size: 13px; padding-left: 40%; border-bottom: 1px dotted #ccc; font-family: monospace;">
-                  <span style="width: 35%;">{u['staza']}</span>
-                  <span style="width: 15%;">{u['datum']}</span>
-                  <span style="width: 10%; text-align: center;">{u['sektor_staza']}</span>
-                  <span style="width: 10%; text-align: right;">{u['riba']}</span>
-                  <span style="width: 15%; text-align: right;">{u['duzina']:.1f}</span>
-                  <span style="width: 15%; text-align: right;">{u['poeni']:.1f}</span>
-                  <span style="width: 10%; text-align: right; font-weight: bold;">{u['plasman']:.1f}</span>
-              </div>
-              """,
-              unsafe_allow_html=True,
-          )
-
-        st.markdown(
-            f"""
-            <div style="display: flex; justify-content: flex-end; font-size: 13px; font-weight: bold; background-color: #f9f9f9; padding: 3px 0; border-top: 1px solid black; border-bottom: 2px solid black;">
-                <span style="margin-right: 20px;">U K U P N O</span>
-                <span style="width: 10%; text-align: right;">{r['uk_riba']}</span>
-                <span style="width: 15%; text-align: right;">{r['uk_duzina']:.1f}</span>
-                <span style="width: 15%; text-align: right;">{r['uk_poeni']:.1f}</span>
-                <span style="width: 10%; text-align: right;">{r['zbir_plasmana']:.1f}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-      else:
-        st.markdown(
-            """<p style="font-size: 12px; color: gray; margin-left: 40%;">Nema unesenih ulova za kola.</p>""",
-            unsafe_allow_html=True,
-        )
-
-      st.markdown("<br>", unsafe_allow_html=True)
+            <button onclick="window.print()" style="background-color:#2c3e50; color:white; padding:8px 16px; border:none;
