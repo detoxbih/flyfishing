@@ -286,4 +286,41 @@ elif menu == "Službeni generalni plasman":
       uk_poeni = sum(u["poeni"] for u in t_ulovi)
       zbir_plasmana = sum(u["plasman"] for u in t_ulovi)
 
-      rezultati_za_sort.
+      rezultati_za_sort.append({
+          "id": t["id"],
+          "ime": t["ime"],
+          "klub": t["klub"],
+          "uk_riba": uk_riba,
+          "uk_duzina": uk_duzina,
+          "uk_poeni": uk_poeni,
+          "zbir_plasmana": zbir_plasmana,
+          "ulovi": t_ulovi,
+      })
+
+    rezultati_za_sort.sort(
+        key=lambda x: (x["zbir_plasmana"], -x["uk_riba"], -x["uk_poeni"])
+    )
+
+    st.markdown(
+        """
+          <hr style="border: 1px solid black; margin: 5px 0;">
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; background-color: #f2f2f2; padding: 5px;">
+              <span style="width: 8%;">PLASM</span>
+              <span style="width: 32%;">IME TAKMIČARA</span>
+              <span style="width: 60%;">MESTO / DRŽAVA / DETALJI PO KOLIMA</span>
+          </div>
+          <hr style="border: 1px solid black; margin: 5px 0;">
+          """,
+        unsafe_allow_html=True,
+    )
+
+    for poz, r in enumerate(rezultati_za_sort, 1):
+      st.markdown(
+          f"""
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 10px;">
+                <span style="width: 8%; text-align: center;">{poz}</span>
+                <span style="width: 32%;">{r['ime'].upper()}</span>
+                <span style="width: 60%; color: #333;">{r['klub'].upper()}</span>
+            </div>
+            """,
+          unsafe_allow_html=True,
