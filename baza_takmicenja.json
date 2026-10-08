@@ -1,0 +1,17 @@
+{
+    "takmicari": [
+        {
+            "id": 1,
+            "ime": "iii hhh",
+            "klub": "",
+            "pocetni_sektor": "A"
+        },
+        {
+            "id": 2,
+            "ime": "ššš",
+            "klub": "bihac",
+            "pocetni_sektor": "B"
+        }
+    ],
+    "ulovi": []
+}
