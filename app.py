@@ -29,7 +29,7 @@ def snimi_podatke():
     json.dump(podaci, f, ensure_ascii=False, indent=4)
 
 
-# Inicijalizacija stanje i učitavanje iz fajla
+# Inicijalizacija stanja i učitavanje iz fajla
 if "podaci_ucitani" not in st.session_state:
   saved = ucitaj_podatke()
   st.session_state.takmicari = saved.get("takmicari", [])
@@ -324,3 +324,42 @@ elif menu == "Službeni generalni plasman":
             </div>
             """,
           unsafe_allow_html=True,
+      )
+
+      if r["ulovi"]:
+        for u in r["ulovi"]:
+          st.markdown(
+              f"""
+                <div style="display: flex; justify-content: space-between; font-size: 13px; padding-left: 40%; border-bottom: 1px dotted #ccc; font-family: monospace;">
+                    <span style="width: 35%;">{u['staza']}</span>
+                    <span style="width: 15%;">{u['datum']}</span>
+                    <span style="width: 10%; text-align: center;">{u['sektor_staza']}</span>
+                    <span style="width: 10%; text-align: right;">{u['riba']}</span>
+                    <span style="width: 15%; text-align: right;">{u['duzina']:.1f}</span>
+                    <span style="width: 15%; text-align: right;">{u['poeni']:.1f}</span>
+                    <span style="width: 10%; text-align: right; font-weight: bold;">{u['plasman']:.1f}</span>
+                </div>
+                """,
+              unsafe_allow_html=True,
+          )
+
+        st.markdown(
+            f"""
+              <div style="display: flex; justify-content: flex-end; font-size: 13px; font-weight: bold; background-color: #f9f9f9; padding: 3px 0; border-top: 1px solid black; border-bottom: 2px solid black;">
+                  <span style="margin-right: 20px;">U K U P N O</span>
+                  <span style="width: 10%; text-align: right;">{r['uk_riba']}</span>
+                  <span style="width: 15%; text-align: right;">{r['uk_duzina']:.1f}</span>
+                  <span style="width: 15%; text-align: right;">{r['uk_poeni']:.1f}</span>
+                  <span style="width: 10%; text-align: right;">{r['zbir_plasmana']:.1f}</span>
+              </div>
+              """,
+            unsafe_allow_html=True,
+        )
+      else:
+        st.markdown(
+            '<p style="font-size: 12px; color: gray; margin-left: 40%;">Nema'
+            " unesenih ulova za kola.</p>",
+            unsafe_allow_html=True,
+        )
+
+      st.markdown("<br>", unsafe_allow_html=True)
