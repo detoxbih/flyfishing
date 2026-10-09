@@ -29,7 +29,6 @@ def snimi_podatke():
     json.dump(podaci, f, ensure_ascii=False, indent=4)
 
 
-# Inicijalizacija stanja
 if "podaci_ucitani" not in st.session_state:
   saved = ucitaj_podatke()
   st.session_state.takmicari = saved.get("takmicari", [])
@@ -156,7 +155,7 @@ elif menu == "Unos ulova ručno (Žrijeb/Sektori)":
       )
       oznaka_staze = f"{izvučeni_sektor} {broj_staze_int:02d}"
 
-      st.info(f"Oznaka staze: **{oznaka_staze}**")
+      st.info(f"Oznaka staze: {oznaka_staze}")
 
       naziv_staze = st.text_input("Mjesto / Staza", value="DRINA, GORAŽDE")
       datum_kola = st.text_input("Datum kola", value="26.09.2026")
@@ -237,7 +236,7 @@ elif menu == "Službeni generalni plasman":
     st.info("Nema unesenih podataka.")
   else:
     st.info(
-        "💡 Savjet za mobitel: Za printanje ili snimanje u PDF, pritisnite meni"
+        "Savjet za mobitel: Za printanje ili snimanje u PDF, pritisnite meni"
         " pretraživača (tri tačkice) i izaberite opciju 'Dijeli' (Share) ili"
         " 'Print'."
     )
@@ -291,5 +290,11 @@ elif menu == "Službeni generalni plasman":
           df_prikaz = pd.DataFrame(tabela_podaci)
           st.dataframe(df_prikaz, use_container_width=True, hide_index=True)
 
-          st.markdown(
-              f"
+          tekst_ukupno = (
+              f"UKUPNO: Riba: {r['uk_riba']} | Dužina:"
+              f" {r['uk_duzina']:.1f} mm | Poeni: {r['uk_poeni']:.1f} | Zbir"
+              f" plasmana: {r['zbir_plasmana']:.1f}"
+          )
+          st.markdown(f"👉 **{tekst_ukupno}**")
+        else:
+          st.markdown("_Nema unesenih ulova za ovog takmičara._")
