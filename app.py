@@ -220,7 +220,7 @@ elif menu == "📸 Skeniraj listu kamerom":
     with open("poslednja_lista.jpg", "wb") as f:
       f.write(slika_liste.getbuffer())
 
-# ----------------- 4. SLUŽBENI GENERALNI PLASMAN (OPTIMIZOVANO ZA MOBITELE) -----------------
+# ----------------- 4. SLUŽBENI GENERALNI PLASMAN -----------------
 elif menu == "Službeni generalni plasman":
   st.markdown(
       """
@@ -236,12 +236,10 @@ elif menu == "Službeni generalni plasman":
   if not st.session_state.takmicari:
     st.info("Nema unesenih podataka.")
   else:
-    # Uputstvo za štampu na mobitelu
     st.info(
-        "💡 **Savjet za mobitel:** Za printanje ili snimanje u PDF, pritisnite"
-        " meni vašeg pretraživača (tri tačkice gore desno) i izaberite opciju"
-        " **"
-        "Dijeli (Share)"** ili **"Print"**."
+        "💡 Savjet za mobitel: Za printanje ili snimanje u PDF, pritisnite meni"
+        " pretraživača (tri tačkice) i izaberite opciju 'Dijeli' (Share) ili"
+        " 'Print'."
     )
 
     rezultati_za_sort = []
@@ -271,7 +269,6 @@ elif menu == "Službeni generalni plasman":
         key=lambda x: (x["zbir_plasmana"], -x["uk_riba"], -x["uk_poeni"])
     )
 
-    # Prikaz preko čistih, preglednih kartica i tabela prilagođenih za telefone
     for poz, r in enumerate(rezultati_za_sort, 1):
       with st.container(border=True):
         st.markdown(
@@ -279,7 +276,6 @@ elif menu == "Službeni generalni plasman":
         )
 
         if r["ulovi"]:
-          # Pripremamo podatke za čistu Streamlit tabelu koja se savršeno prilagođava ekranu mobitela
           tabela_podaci = []
           for u in r["ulovi"]:
             tabela_podaci.append({
@@ -295,14 +291,5 @@ elif menu == "Službeni generalni plasman":
           df_prikaz = pd.DataFrame(tabela_podaci)
           st.dataframe(df_prikaz, use_container_width=True, hide_index=True)
 
-          # Ukupne vrijednosti ispod tabele
           st.markdown(
-              f"👉 **UKUPNO:** Riba: **{r['uk_riba']}** | Dužina:"
-              f" **{r['uk_duzina']:.1f} mm** | Poeni:"
-              f" **{r['uk_poeni']:.1f}** | **Zbir plasmana: {r['zbir_plasmana']:.1f}**"
-          )
-        else:
-          st.markdown(
-              "_Nema unesenih ulova za ovog takmičara._",
-              help="Nema ulova",
-          )
+              f"
